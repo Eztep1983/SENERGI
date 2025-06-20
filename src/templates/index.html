@@ -3,43 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SolarNariño - Calculadora Solar</title>
+    <title> SENERGI - Calculadora Solar</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ url_for('static', filename='SENERGI.png') }}" alt="Mi imagen" width="200">            
-    <p>Calculadora Solar Inteligente para el Departamento de Nariño</p>
+            <img src="{{ url_for('static', filename='SENERGI.png') }}" alt="SENERGI" height="200">
+            <p>Simulador Energetico Regional De Gestion Inteligente</p>
         </div>
 
         <div class="main-content">
-            <div class="search-section">
-                <h3 class="section-title">Búsqueda de Ubicación</h3>
+            <div class="section">
+                <div class="input-group">
+                    <h3>
+                        ¿Cómo usar la plataforma?                        
+                    </h3>
+                    <br>
+                    - Ingresa la ubicación de tu proyecto o selecciona un punto en el mapa.
+                    <br>
+                    <br>
+                    - Completa los datos solicitados: consumo mensual, tarifas eléctricas aproximada de la zona que desea ver calcular.
+                    <br>
+                    <br>
+                    - Haz clic en “Calcular potencial solar” para obtener tu estimación personalizada.
+                </div>
+                <h3 class="section-title"> Búsqueda de Ubicación</h3>
                 
                 <div class="input-group">
                     <label for="search">Buscar barrio, pueblo o ciudad:</label>
                     <input type="text" id="search" placeholder="Ejemplo: Barrio San Juan, Pasto" />
                 </div>
 
-                <button type="button" class="search-button" onclick="buscarLugar()">
+                <button type="button" class="calculate-btn" onclick="buscarLugar()">
                     🔍 Buscar Ubicación
                 </button>
 
-                <div class="error-message" id="search-error"></div>
-                <div class="success-message" id="search-success"></div>
+                <div class="message error-message" id="search-error"></div>
+                <div class="message success-message" id="search-success"></div>
 
-                <div class="input-group" style="margin-top: 20px;">
+                <div class="input-group" id="resultados-container" style="display: none;">
                     <label for="resultados">Resultados de búsqueda:</label>
                     <select id="resultados" size="5" onchange="seleccionarLugar()"></select>
                 </div>
             </div>
 
-            <div class="map-section">
-                <h3 class="section-title">Selección en Mapa</h3>
+            <div class="section">
+                <h3 class="section-title">🗺️ Selección en Mapa</h3>
                 <div id="map"></div>
-                <p style="font-size: 0.9rem; color: #7f8c8d; text-align: center;">
+                <p style="font-size: 0.9rem; color: #636e72; text-align: center;">
                     Haz clic en el mapa para seleccionar una ubicación
                 </p>
                 
@@ -50,7 +66,7 @@
                 </div>
             </div>
 
-            <div class="calculator-form">
+            <div class="section calculator-form">
                 <h3 class="section-title">🧮 Calculadora Solar</h3>
                 
                 <form id="solar-form">
@@ -61,19 +77,19 @@
                         <div class="input-group">
                             <label for="consumo">💡 Consumo mensual (kWh):</label>
                             <input type="number" id="consumo" name="consumo" min="1" step="0.1" required 
-                                   placeholder="Ej: 150">
+                                   placeholder="Ej: 150" value="150">
                         </div>
 
                         <div class="input-group">
                             <label for="costo">💰 Costo de instalación (COP):</label>
-                            <input type="number" id="costo" name="costo" min="1" step="1000" required 
-                                   placeholder="Ej: 15000000">
+                            <input type="number" id="costo" name="costo" min="1" step="100000" required 
+                                   placeholder="Ej: 15000000" value="15000000">
                         </div>
 
                         <div class="input-group">
                             <label for="superficie">📐 Superficie disponible (m²):</label>
                             <input type="number" id="superficie" name="superficie" min="1" step="0.1" 
-                                   value="10" placeholder="Ej: 10">
+                                   value="20" placeholder="Ej: 20">
                         </div>
 
                         <div class="input-group">
@@ -83,49 +99,76 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="calculate-button" id="calculate-btn" disabled>
+                    <button type="submit" class="calculate-btn" disabled>
                         ⚡ Calcular Potencial Solar
                     </button>
                 </form>
 
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
-                    <p>Calculando datos solares...</p>
+                    <p>Obteniendo datos de radiación solar de NASA...</p>
                 </div>
 
-                <div class="error-message" id="calc-error"></div>
+                <div class="message error-message" id="calc-error"></div>
             </div>
+        </div>
 
-            <div id="results" class="results" style="display: none;">
-                <h2>📊 Resultados del Análisis Solar</h2>
-                <div class="results-grid">
-                    <div class="result-card">
-                        <div class="icon">🌞</div>
-                        <div class="value" id="generacion-value">0</div>
-                        <div class="label">kWh generados por mes</div>
-                    </div>
-                    <div class="result-card">
-                        <div class="icon">💸</div>
-                        <div class="value" id="ahorro-value">$0</div>
-                        <div class="label">Ahorro mensual estimado</div>
-                    </div>
-                    <div class="result-card">
-                        <div class="icon">⏰</div>
-                        <div class="value" id="roi-value">0</div>
-                        <div class="label">Años para recuperar inversión</div>
-                    </div>
-                    <div class="result-card">
-                        <div class="icon">🌱</div>
-                        <div class="value" id="co2-value">0</div>
-                        <div class="label">kg CO² evitados/año</div>
-                    </div>
+        <div id="results" class="results" style="display: none;">
+            <h2> Resultados del Análisis Solar</h2>
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="value" id="generacion-value">0</div>
+                    <div class="label">kWh generados por mes</div>
                 </div>
+                <div class="result-card">
+                    <div class="icon">💸</div>
+                    <div class="value" id="ahorro-value">$0</div>
+                    <div class="label">Ahorro mensual estimado</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">⏰</div>
+                    <div class="value" id="roi-value">0</div>
+                    <div class="label">Años para recuperar inversión</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">🌱</div>
+                    <div class="value" id="co2-value">0</div>
+                    <div class="label">kg CO² evitados/año</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">☀️</div>
+                    <div class="value" id="radiacion-value">0</div>
+                    <div class="label">kWh/m²/día radiación solar</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">⚡</div>
+                    <div class="value" id="potencia-value">0</div>
+                    <div class="label">kW potencia instalada</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">🔋</div>
+                    <div class="value" id="autoconsumo-value">0</div>
+                    <div class="label">kWh autoconsumidos/mes</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">📤</div>
+                    <div class="value" id="exceso-value">0</div>
+                    <div class="label">kWh excedentes/mes</div>
+                </div>
+                <div class="result-card">
+                    <div class="icon">📈</div>
+                    <div class="value" id="roi-porcentaje-value">0%</div>
+                    <div class="label">ROI en 25 años</div>
+                </div>
+            </div>
+            <div class="section" id="grafico-section" style="display: none;">
+            <h3 class="section-title">📅 Radiación Solar por Mes</h3>
+                <canvas id="radiacion-chart"></canvas>
             </div>
         </div>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script>
+        let radiacionChart = null;
         let map;
         let marker;
         let selectedLat = null;
@@ -192,9 +235,11 @@
         async function buscarLugar() {
             const query = document.getElementById('search').value.trim();
             const resultados = document.getElementById('resultados');
+            const container = document.getElementById('resultados-container');
             
             hideMessages();
             resultados.innerHTML = '';
+            container.style.display = 'none';
             
             if (!query) {
                 showErrorMessage('search-error', 'Por favor ingresa un lugar para buscar.');
@@ -210,7 +255,6 @@
                 const data = await response.json();
 
                 if (data.length === 0) {
-                    resultados.innerHTML = '<option>No se encontraron resultados</option>';
                     showErrorMessage('search-error', 'No se encontraron resultados para tu búsqueda.');
                     return;
                 }
@@ -222,25 +266,24 @@
                     resultados.appendChild(option);
                 });
 
-                showSuccessMessage('search-success', `✅ Se encontraron ${data.length} resultados`);
+                container.style.display =              container.style.display = 'block';
             } catch (error) {
-                showErrorMessage('search-error', 'Error al buscar el lugar. Verifica tu conexión e intenta de nuevo.');
-                console.error(error);
+                showErrorMessage('search-error', 'Error al buscar la ubicación. Intenta nuevamente.');
             }
         }
 
-        // Seleccionar lugar de la lista
+        // Seleccionar lugar de los resultados
         function seleccionarLugar() {
-            const resultados = document.getElementById('resultados');
-            const seleccionado = resultados.options[resultados.selectedIndex];
+            const select = document.getElementById('resultados');
+            const selected = select.value;
             
-            if (seleccionado && seleccionado.value) {
-                const [lat, lon] = seleccionado.value.split(',');
-                seleccionarUbicacionMapa(parseFloat(lat), parseFloat(lon));
-                
-                // Centrar mapa en la ubicación seleccionada
-                map.setView([parseFloat(lat), parseFloat(lon)], 14);
-            }
+            if (!selected) return;
+            
+            const [lat, lon] = selected.split(',').map(Number);
+            seleccionarUbicacionMapa(lat, lon);
+            
+            // Centrar el mapa en la ubicación seleccionada
+            map.setView([lat, lon], 15);
         }
 
         // Actualizar estado del botón de cálculo
@@ -249,97 +292,233 @@
             const lat = document.getElementById('lat').value;
             const lon = document.getElementById('lon').value;
             
-            btn.disabled = !lat || !lon;
+            btn.disabled = !(lat && lon);
         }
 
-        // Manejar envío del formulario
-        document.getElementById('solar-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const loading = document.getElementById('loading');
-            const results = document.getElementById('results');
-            const calcError = document.getElementById('calc-error');
-            
-            // Mostrar loading
-            loading.style.display = 'block';
-            results.style.display = 'none';
-            calcError.style.display = 'none';
-            
-            try {
-                const formData = new FormData(this);
-                const data = Object.fromEntries(formData);
-                
-                // Simular cálculo (aquí iría la llamada a tu API)
-                await calcularDatosSolares(data);
-                
-            } catch (error) {
-                showErrorMessage('calc-error', 'Error al calcular los datos solares. Intenta de nuevo.');
-                console.error(error);
-            } finally {
-                loading.style.display = 'none';
-            }
-        });
-
-        // Función de cálculo solar (simulada)
-        async function calcularDatosSolares(data) {
-            // Simular delay de API
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            const lat = parseFloat(data.lat);
-            const lon = parseFloat(data.lon);
-            const consumo = parseFloat(data.consumo);
-            const costo = parseFloat(data.costo);
-            const superficie = parseFloat(data.superficie) || 10;
-            const tarifa = parseFloat(data.tarifa) || 600;
-            
-            // Cálculos simplificados (en producción usarías NASA POWER API)
-            const radiacionPromedio = 4.5; // kWh/m²/día (promedio para Nariño)
-            const eficienciasistema = 0.75;
-            const generacionMensual = radiacionPromedio * eficienciasistema * superficie * 30;
-            
-            const ahorroMensual = Math.min(generacionMensual, consumo) * tarifa;
-            const ahorroAnual = ahorroMensual * 12;
-            const roi = costo / ahorroAnual;
-            const co2Evitado = generacionMensual * 12 * 0.5; // kg CO2/año
-            
-            // Mostrar resultados
-            document.getElementById('generacion-value').textContent = generacionMensual.toFixed(1);
-            document.getElementById('ahorro-value').textContent = '$' + ahorroMensual.toLocaleString('es-CO');
-            document.getElementById('roi-value').textContent = roi.toFixed(1);
-            document.getElementById('co2-value').textContent = co2Evitado.toFixed(0);
-            
-            document.getElementById('results').style.display = 'block';
-        }
-
-        // Funciones auxiliares para mensajes
+        // Mostrar mensaje de error
         function showErrorMessage(id, message) {
-            const el = document.getElementById(id);
-            el.textContent = message;
-            el.style.display = 'block';
+            hideMessages();
+            const element = document.getElementById(id);
+            element.textContent = message;
+            element.style.display = 'block';
         }
 
+        // Mostrar mensaje de éxito
         function showSuccessMessage(id, message) {
-            const el = document.getElementById(id);
-            el.textContent = message;
-            el.style.display = 'block';
+            hideMessages();
+            const element = document.getElementById(id);
+            element.textContent = message;
+            element.style.display = 'block';
         }
 
+        // Ocultar todos los mensajes
         function hideMessages() {
-            document.querySelectorAll('.error-message, .success-message').forEach(el => {
+            document.querySelectorAll('.message').forEach(el => {
                 el.style.display = 'none';
             });
         }
-
-        // Permitir Enter para buscar
-        document.getElementById('search').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                buscarLugar();
+        function validarDatos(data) {
+            if (!data.lat || !data.lon) {
+                throw new Error('Debes seleccionar una ubicación en el mapa');
             }
-        });
+            
+            if (isNaN(data.consumo)) {
+                throw new Error('El consumo debe ser un número válido');
+            }
+            
+            if (data.consumo <= 0) {
+                throw new Error('El consumo debe ser mayor que cero');
+            }
+            
+            // Puedes agregar más validaciones según necesites
+            return true;
+        }
+           async function calcularPotencialSolar(event) {
+                event.preventDefault();
+                
+                const form = event.target;
+                const loading = document.getElementById('loading');
+                const results = document.getElementById('results');
+                const errorElement = document.getElementById('calc-error');
+                const graficoSection = document.getElementById('grafico-section');
+                
+                // Mostrar carga y ocultar resultados anteriores
+                loading.style.display = 'block';
+                errorElement.style.display = 'none';
+                results.style.display = 'none';
+                graficoSection.style.display = 'none';
+                
+                // Obtener datos del formulario
+                const formData = new FormData(form);
+                const data = {
+                    lat: formData.get('lat'),
+                    lon: formData.get('lon'),
+                    consumo: parseFloat(formData.get('consumo')),
+                    costo: parseFloat(formData.get('costo')),
+                    superficie: parseFloat(formData.get('superficie')) || 10,
+                    tarifa: parseFloat(formData.get('tarifa')) || 600
+                };
+                
+                // Validar campos obligatorios
+                if (!data.lat || !data.lon) {
+                    showErrorMessage('calc-error', 'Debes seleccionar una ubicación en el mapa');
+                    loading.style.display = 'none';
+                    return;
+                }
 
-        // Inicializar mapa cuando se carga la página
+                if (isNaN(data.consumo)) {
+                    showErrorMessage('calc-error', 'El consumo debe ser un número válido');
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                if (data.consumo <= 0) {
+                    showErrorMessage('calc-error', 'El consumo debe ser mayor que cero');
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                if (isNaN(data.costo) || data.costo <= 0) {
+                    showErrorMessage('calc-error', 'El costo de instalación debe ser mayor que cero');
+                    loading.style.display = 'none';
+                    return;
+                }
+                
+                try {
+                    // Llamada real al backend
+                    const response = await fetch('/api/calcular', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Error en el servidor');
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Error desconocido');
+                    }
+                    
+                    // Formatear y mostrar resultados reales
+                    const res = result.data;
+                    
+                    // Actualizar los valores en la interfaz
+                    document.getElementById('generacion-value').textContent = res.generacion_mensual_kwh.toLocaleString('es-CO', {maximumFractionDigits: 2});
+                    document.getElementById('ahorro-value').textContent = `$${Math.round(res.ahorro_mensual).toLocaleString('es-CO')}`;
+                    document.getElementById('roi-value').textContent = res.payback_años === 'N/A' ? 'N/A' : res.payback_años;
+                    document.getElementById('co2-value').textContent = Math.round(res.co2_evitado_anual).toLocaleString('es-CO');
+                    document.getElementById('radiacion-value').textContent = res.radiacion_diaria.toLocaleString('es-CO', {maximumFractionDigits: 2});
+                    document.getElementById('potencia-value').textContent = res.potencia_instalada_kw.toLocaleString('es-CO', {maximumFractionDigits: 2});
+                    document.getElementById('autoconsumo-value').textContent = res.energia_autoconsumida.toLocaleString('es-CO', {maximumFractionDigits: 2});
+                    document.getElementById('exceso-value').textContent = res.exceso_energia.toLocaleString('es-CO', {maximumFractionDigits: 2});
+                    document.getElementById('roi-porcentaje-value').textContent = `${res.roi_porcentaje.toLocaleString('es-CO', {maximumFractionDigits: 1})}%`;
+                    
+                    // Mostrar sección de resultados
+                    results.style.display = 'block';
+                    
+                    // Mostrar gráfico de radiación mensual si hay datos
+                    if (res.radiacion_mensual) {
+                        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                        const valores = meses.map((_, i) => res.radiacion_mensual[String(i+1)] || 0);
+                        
+                        const ctx = document.getElementById('radiacion-chart').getContext('2d');
+                        
+                        // Destruir gráfico anterior si existe
+                        if (window.radiacionChart) {
+                            window.radiacionChart.destroy();
+                        }
+                        
+                        window.radiacionChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: meses,
+                                datasets: [{
+                                    label: 'Radiación Solar (kWh/m²/día)',
+                                    data: valores,
+                                    backgroundColor: meses.map((_, i) => 
+                                        i >= 3 && i <= 10 ? 'rgba(54, 162, 235, 0.7)' : 'rgba(255, 159, 64, 0.7)'
+                                    ),
+                                    borderColor: meses.map((_, i) => 
+                                        i >= 3 && i <= 10 ? 'rgba(54, 162, 235, 1)' : 'rgba(255, 159, 64, 1)'
+                                    ),
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `${context.dataset.label}: ${context.raw.toFixed(2)}`;
+                                            }
+                                        }
+                                    },
+                                    legend: {
+                                        position: 'top',
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'kWh/m²/día',
+                                            font: {
+                                                weight: 'bold'
+                                            }
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Meses del año',
+                                            font: {
+                                                weight: 'bold'
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        graficoSection.style.display = 'block';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    let errorMessage = 'Error al calcular el potencial solar. Intenta nuevamente.';
+                    
+                    if (error.message.includes('Failed to fetch')) {
+                        errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión.';
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+                    
+                    showErrorMessage('calc-error', errorMessage);
+                } finally {
+                    loading.style.display = 'none';
+                }
+            }
+        // Inicializar la aplicación cuando se cargue el DOM
         document.addEventListener('DOMContentLoaded', function() {
             initMap();
+            
+            // Configurar evento del formulario
+            document.getElementById('solar-form').addEventListener('submit', calcularPotencialSolar);
+            
+            // Validar campos numéricos
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    if (this.value < 0) this.value = 0;
+                });
+            });
         });
     </script>
 </body>

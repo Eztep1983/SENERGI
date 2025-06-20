@@ -173,7 +173,7 @@
             margin-bottom: 25px;
         }
 
-        .calculate-button {
+        .calculate-btn {
             background: linear-gradient(135deg, #0059ff 0%, #86d7e6 100%);
             color: white;
             border: none;
@@ -186,12 +186,12 @@
             width: 100%;
         }
 
-        .calculate-button:hover {
+        .calculate-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(245, 87, 108, 0.3);
         }
 
-        .calculate-button:disabled {
+        .calculate-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
