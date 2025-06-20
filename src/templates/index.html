@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarNariño - Calculadora Solar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="{{ url_for('static', filename='SENERGI.png') }}" alt="Mi imagen" width="200">            
+    <p>Calculadora Solar Inteligente para el Departamento de Nariño</p>
+        </div>
+
+        <div class="main-content">
+            <div class="search-section">
+                <h3 class="section-title">Búsqueda de Ubicación</h3>
+                
+                <div class="input-group">
+                    <label for="search">Buscar barrio, pueblo o ciudad:</label>
+                    <input type="text" id="search" placeholder="Ejemplo: Barrio San Juan, Pasto" />
+                </div>
+
+                <button type="button" class="search-button" onclick="buscarLugar()">
+                    🔍 Buscar Ubicación
+                </button>
+
+                <div class="error-message" id="search-error"></div>
+                <div class="success-message" id="search-success"></div>
+
+                <div class="input-group" style="margin-top: 20px;">
+                    <label for="resultados">Resultados de búsqueda:</label>
+                    <select id="resultados" size="5" onchange="seleccionarLugar()"></select>
+                </div>
+            </div>
+
+            <div class="map-section">
+                <h3 class="section-title">Selección en Mapa</h3>
+                <div id="map"></div>
+                <p style="font-size: 0.9rem; color: #7f8c8d; text-align: center;">
+                    Haz clic en el mapa para seleccionar una ubicación
+                </p>
+                
+                <div id="selected-location" class="selected-location" style="display: none;">
+                    <h4>📍 Ubicación Seleccionada</h4>
+                    <p id="location-coords"></p>
+                    <p id="location-address">Cargando dirección...</p>
+                </div>
+            </div>
+
+            <div class="calculator-form">
+                <h3 class="section-title">🧮 Calculadora Solar</h3>
+                
+                <form id="solar-form">
+                    <input type="hidden" id="lat" name="lat" required>
+                    <input type="hidden" id="lon" name="lon" required>
+
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="consumo">💡 Consumo mensual (kWh):</label>
+                            <input type="number" id="consumo" name="consumo" min="1" step="0.1" required 
+                                   placeholder="Ej: 150">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="costo">💰 Costo de instalación (COP):</label>
+                            <input type="number" id="costo" name="costo" min="1" step="1000" required 
+                                   placeholder="Ej: 15000000">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="superficie">📐 Superficie disponible (m²):</label>
+                            <input type="number" id="superficie" name="superficie" min="1" step="0.1" 
+                                   value="10" placeholder="Ej: 10">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="tarifa">⚡ Tarifa eléctrica (COP/kWh):</label>
+                            <input type="number" id="tarifa" name="tarifa" min="1" step="10" 
+                                   value="600" placeholder="Ej: 600">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="calculate-button" id="calculate-btn" disabled>
+                        ⚡ Calcular Potencial Solar
+                    </button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Calculando datos solares...</p>
+                </div>
+
+                <div class="error-message" id="calc-error"></div>
+            </div>
+
+            <div id="results" class="results" style="display: none;">
+                <h2>📊 Resultados del Análisis Solar</h2>
+                <div class="results-grid">
+                    <div class="result-card">
+                        <div class="icon">🌞</div>
+                        <div class="value" id="generacion-value">0</div>
+                        <div class="label">kWh generados por mes</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="icon">💸</div>
+                        <div class="value" id="ahorro-value">$0</div>
+                        <div class="label">Ahorro mensual estimado</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="icon">⏰</div>
+                        <div class="value" id="roi-value">0</div>
+                        <div class="label">Años para recuperar inversión</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="icon">🌱</div>
+                        <div class="value" id="co2-value">0</div>
+                        <div class="label">kg CO² evitados/año</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        let map;
+        let marker;
+        let selectedLat = null;
+        let selectedLon = null;
+
+        // Inicializar el mapa
+        function initMap() {
+            // Centrar en Nariño, Colombia
+            map = L.map('map').setView([1.2136, -77.2811], 8);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Evento de clic en el mapa
+            map.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lon = e.latlng.lng;
+                seleccionarUbicacionMapa(lat, lon);
+            });
+        }
+
+        // Seleccionar ubicación desde el mapa
+        async function seleccionarUbicacionMapa(lat, lon) {
+            selectedLat = lat;
+            selectedLon = lon;
+            
+            // Actualizar campos ocultos
+            document.getElementById('lat').value = lat;
+            document.getElementById('lon').value = lon;
+            
+            // Agregar/actualizar marcador
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([lat, lon]).addTo(map);
+            
+            // Mostrar información de ubicación
+            const locationDiv = document.getElementById('selected-location');
+            const coordsP = document.getElementById('location-coords');
+            const addressP = document.getElementById('location-address');
+            
+            coordsP.textContent = `Coordenadas: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            addressP.textContent = 'Cargando dirección...';
+            locationDiv.style.display = 'block';
+            
+            // Obtener dirección usando geocodificación inversa
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=es`
+                );
+                const data = await response.json();
+                addressP.textContent = data.display_name || 'Dirección no disponible';
+            } catch (error) {
+                addressP.textContent = 'Error al obtener dirección';
+            }
+            
+            // Habilitar botón de cálculo
+            updateCalculateButton();
+            showSuccessMessage('search-success', '✅ Ubicación seleccionada correctamente');
+        }
+
+        // Buscar lugar
+        async function buscarLugar() {
+            const query = document.getElementById('search').value.trim();
+            const resultados = document.getElementById('resultados');
+            
+            hideMessages();
+            resultados.innerHTML = '';
+            
+            if (!query) {
+                showErrorMessage('search-error', 'Por favor ingresa un lugar para buscar.');
+                return;
+            }
+
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Nariño, Colombia')}&format=json&addressdetails=1&limit=10&countrycodes=co`;
+
+            try {
+                const response = await fetch(url, { 
+                    headers: { 'Accept-Language': 'es' } 
+                });
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    resultados.innerHTML = '<option>No se encontraron resultados</option>';
+                    showErrorMessage('search-error', 'No se encontraron resultados para tu búsqueda.');
+                    return;
+                }
+
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = `${item.lat},${item.lon}`;
+                    option.textContent = item.display_name;
+                    resultados.appendChild(option);
+                });
+
+                showSuccessMessage('search-success', `✅ Se encontraron ${data.length} resultados`);
+            } catch (error) {
+                showErrorMessage('search-error', 'Error al buscar el lugar. Verifica tu conexión e intenta de nuevo.');
+                console.error(error);
+            }
+        }
+
+        // Seleccionar lugar de la lista
+        function seleccionarLugar() {
+            const resultados = document.getElementById('resultados');
+            const seleccionado = resultados.options[resultados.selectedIndex];
+            
+            if (seleccionado && seleccionado.value) {
+                const [lat, lon] = seleccionado.value.split(',');
+                seleccionarUbicacionMapa(parseFloat(lat), parseFloat(lon));
+                
+                // Centrar mapa en la ubicación seleccionada
+                map.setView([parseFloat(lat), parseFloat(lon)], 14);
+            }
+        }
+
+        // Actualizar estado del botón de cálculo
+        function updateCalculateButton() {
+            const btn = document.getElementById('calculate-btn');
+            const lat = document.getElementById('lat').value;
+            const lon = document.getElementById('lon').value;
+            
+            btn.disabled = !lat || !lon;
+        }
+
+        // Manejar envío del formulario
+        document.getElementById('solar-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const calcError = document.getElementById('calc-error');
+            
+            // Mostrar loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            calcError.style.display = 'none';
+            
+            try {
+                const formData = new FormData(this);
+                const data = Object.fromEntries(formData);
+                
+                // Simular cálculo (aquí iría la llamada a tu API)
+                await calcularDatosSolares(data);
+                
+            } catch (error) {
+                showErrorMessage('calc-error', 'Error al calcular los datos solares. Intenta de nuevo.');
+                console.error(error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Función de cálculo solar (simulada)
+        async function calcularDatosSolares(data) {
+            // Simular delay de API
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const lat = parseFloat(data.lat);
+            const lon = parseFloat(data.lon);
+            const consumo = parseFloat(data.consumo);
+            const costo = parseFloat(data.costo);
+            const superficie = parseFloat(data.superficie) || 10;
+            const tarifa = parseFloat(data.tarifa) || 600;
+            
+            // Cálculos simplificados (en producción usarías NASA POWER API)
+            const radiacionPromedio = 4.5; // kWh/m²/día (promedio para Nariño)
+            const eficienciasistema = 0.75;
+            const generacionMensual = radiacionPromedio * eficienciasistema * superficie * 30;
+            
+            const ahorroMensual = Math.min(generacionMensual, consumo) * tarifa;
+            const ahorroAnual = ahorroMensual * 12;
+            const roi = costo / ahorroAnual;
+            const co2Evitado = generacionMensual * 12 * 0.5; // kg CO2/año
+            
+            // Mostrar resultados
+            document.getElementById('generacion-value').textContent = generacionMensual.toFixed(1);
+            document.getElementById('ahorro-value').textContent = '$' + ahorroMensual.toLocaleString('es-CO');
+            document.getElementById('roi-value').textContent = roi.toFixed(1);
+            document.getElementById('co2-value').textContent = co2Evitado.toFixed(0);
+            
+            document.getElementById('results').style.display = 'block';
+        }
+
+        // Funciones auxiliares para mensajes
+        function showErrorMessage(id, message) {
+            const el = document.getElementById(id);
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function showSuccessMessage(id, message) {
+            const el = document.getElementById(id);
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.querySelectorAll('.error-message, .success-message').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+
+        // Permitir Enter para buscar
+        document.getElementById('search').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarLugar();
+            }
+        });
+
+        // Inicializar mapa cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+        });
+    </script>
+</body>
+</html>
