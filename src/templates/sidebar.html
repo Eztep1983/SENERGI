@@ -1,0 +1,40 @@
+<!-- templates/sidebar.html -->
+
+<head>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+<div class="sidebar" id="sidebar">
+    <button class="toggle-btn" id="toggle-btn">☰</button>
+    
+    <div class="sidebar-content">
+        <div class="assistant-header">
+            <div class="assistant-avatar">🤖</div>
+            <h3>Asistente SENERGI</h3>
+            <p>¿En qué puedo ayudarte hoy?</p>
+        </div>
+        
+        <div class="assistant-messages">
+            <div class="message assistant">
+                ¡Hola! Soy tu asistente solar. Estoy aquí para guiarte en el uso de la plataforma.
+            </div>
+            <div class="message user">
+                ¿Cómo calculo mi potencial solar?
+            </div>
+            <div class="message assistant">
+                1. Selecciona tu ubicación en el mapa<br>
+                2. Ingresa tu consumo mensual<br>
+                3. Haz clic en "Calcular"
+            </div>
+        </div>
+        
+        <div class="assistant-input">
+            <input type="text" placeholder="Escribe tu pregunta..." disabled>
+            <button disabled>Enviar</button>
+        </div>
+        
+        <div class="assistant-footer">
+            <small>Asistente de demostración - Sin funcionalidad real</small>
+        </div>
+    </div>
+</div>
